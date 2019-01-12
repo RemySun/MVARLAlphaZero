@@ -5,7 +5,7 @@ import align4.game as game
 from mcts import MCTS
 import numpy as np
 
-def policyIteration(n_iters=30,n_episodes=50):
+def policyIteration(n_iters=30,n_episodes=40):
     network = model.ConvNetwork()
     network.save_weights('koth_net.h5')
     history = []
@@ -32,11 +32,13 @@ def policyIteration(n_iters=30,n_episodes=50):
         network.save_weights('best_cnn_'+str(iteration)+'.h5')
     return network
 
+from keras.callbacks import EarlyStopping
+
 def trainNetwork(network, examples):
     input_data = np.array([ex[0] for ex in examples])
     ground_truths = [np.array([ex[1] for ex in examples]),np.array([ex[2] for ex in examples])]
- 
-    history = network.fit(input_data,ground_truths,batch_size=10,epochs=60,shuffle=True)
+    early_stopping_monitor = EarlyStopping(patience=3)
+    history = network.fit(input_data,ground_truths,batch_size=10,epochs=100,shuffle=True,callbacks=[early_stopping_monitor])
     return history
 
 def playMatch(network,n_MCTS_search=25):
@@ -88,8 +90,6 @@ def fight(network,koth_ckpt,challenger_ckpt,first_player=1,n_MCTS_search=25):
         policy=mcts.computePi(s,network)
         a = np.random.choice(game.ACTIONS,p=policy)
         s = game.nextState(s,a)
-        print(policy)
-        print(s)
         if game.isEnded(s):
             return first_player*game.getWinner(s)
 
@@ -104,7 +104,7 @@ def stupidityCheck(net):
 
     for _ in range(50):
         mcts.search(s,net)
-    print([mcts.N[str(s),a] for a in range(7)])
+    print([mcts.N_s_a[str(s),a] for a in range(7)])
     return
 
 
