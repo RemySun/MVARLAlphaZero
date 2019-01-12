@@ -5,11 +5,16 @@ import align4.game as game
 from mcts import MCTS
 import numpy as np
 
-def policyIteration(n_iters=30,n_episodes=40):
+save_dir = "cnn_logger/"
+
+def policyIteration(n_iters=30,n_episodes=50,load=None):
     network = model.ConvNetwork()
-    network.save_weights('koth_net.h5')
+    if load:
+        network.save_weights(load)
+    network.save_weights(save_dir + 'koth_net.h5')
     history = []
     for iteration in range(n_iters):
+        sanityCheck(network,save_dir + 'koth_net.h5')
         examples = []
         print('Training cycle',iteration)
         for episode in range(n_episodes):
@@ -20,16 +25,16 @@ def policyIteration(n_iters=30,n_episodes=40):
         history.append(trainNetwork(network,examples))
         stupidityCheck(network)
         print('Finding out who the better network is')
-        network.save_weights('challenger_net.h5')
-        frac_win = duel(network,'koth_net.h5','challenger_net.h5')
+        network.save_weights(save_dir + 'challenger_net.h5')
+        frac_win = duel(network,save_dir + 'koth_net.h5',save_dir + 'challenger_net.h5')
         if frac_win > 0.5:
             print('The young will replace the old. Or something to that effect')
-            network.load_weights('challenger_net.h5')
-            network.save_weights('koth_net.h5')
+            network.load_weights(save_dir + 'challenger_net.h5')
+            network.save_weights(save_dir + 'koth_net.h5')
         else:
             print('Come back in a million iterations')
-            network.load_weights('koth_net.h5')
-        network.save_weights('best_cnn_'+str(iteration)+'.h5')
+            network.load_weights(save_dir + 'koth_net.h5')
+        network.save_weights(save_dir + 'best_cnn_'+str(iteration)+'.h5')
     return network
 
 from keras.callbacks import EarlyStopping
@@ -92,6 +97,39 @@ def fight(network,koth_ckpt,challenger_ckpt,first_player=1,n_MCTS_search=25):
         s = game.nextState(s,a)
         if game.isEnded(s):
             return first_player*game.getWinner(s)
+
+def sanityCheck(network,koth_ckpt,n_MCTS_search=25,n_games=30):
+    challenger_wins = 0
+    koth_wins=0
+    for i in range(n_games):
+        fight_result= sanityFight(network,koth_ckpt,first_player=(-1)**i,n_MCTS_search=n_MCTS_search)
+        if  fight_result> 0:
+            challenger_wins+=1
+        elif fight_result < 0:
+            koth_wins+=1
+    f=open(save_dir+'logger','a')
+    f.write('network won '+str(challenger_wins)+" out of "+str(challenger_wins+koth_wins))
+    f.close()
+    return
+
+def sanityFight(network,koth_ckpt,first_player=1,n_MCTS_search=25):
+    s=game.startState()
+
+    while True:
+        player = game.getCurrentPlayer(s)
+        mcts=MCTS()
+        if (first_player*player) >0:
+            network.load_weights(koth_ckpt)
+            for _ in range(n_MCTS_search):
+                mcts.search(s,network)
+            policy=mcts.computePi(s,network)
+            a = np.random.choice(game.ACTIONS,p=policy)
+        else:
+            a = np.random.choice(game.validMoves(s))
+        s = game.nextState(s,a)
+        if game.isEnded(s):
+            return first_player*game.getWinner(s)
+
 
 def stupidityCheck(net):
 
