@@ -6,7 +6,7 @@ import random
 import numpy as np
 import tensorflow as tf
 import os
-import align4.game as game
+import tictactoe.game as game
 
 # helper to initialize a weight and bias variable
 def weight_bias(shape):
@@ -32,15 +32,15 @@ class Model(object):
 
         # lambda decay
         lamda = tf.maximum(0.7, tf.train.exponential_decay(0.9, self.global_step, \
-            30000, 0.96, staircase=True), name='lambda')
+            3000, 0.96, staircase=True), name='lambda')
 
         # learning rate decay
-        alpha = tf.maximum(0.01, tf.train.exponential_decay(0.1, self.global_step, \
-            40000, 0.96, staircase=True), name='alpha')
+        alpha = tf.maximum(0.001, tf.train.exponential_decay(0.001, self.global_step, \
+            4000, 0.96, staircase=True), name='alpha')
 
         # describe network size
-        layer_size_input = 42
-        layer_size_hidden = 30
+        layer_size_input = 9
+        layer_size_hidden = 32
         layer_size_output = 1
 
         # placeholders for input and target output
@@ -145,60 +145,9 @@ class Model(object):
             print('Restoring checkpoint: {0}'.format(latest_checkpoint_path))
             self.saver.restore(self.sess, latest_checkpoint_path)
 
-    def get_output(self, x):
-        return self.sess.run(self.V, feed_dict={ self.x: x })
-
-# def test(network, episodes=100, draw=False):
-#     td_wins = 0
-#     rand_win = 0
-#     for i in range(n_games):
-#         fight_result= fight(network,koth_ckpt,challenger_ckpt,first_player=(-1)**i,n_MCTS_search=n_MCTS_search)
-#         if  fight_result< 0:
-#             challenger_wins+=1
-#             print('One for the challenger!')
-#         elif fight_result > 0:
-#             print("Somethingsomethingaboutoldginger")
-#             koth_wins+=1
-#         else:
-#             print("And... Draw. Talk about anti climactic")
-#     return challenger_wins/(koth_wins+challenger_wins)
-
-def fight(network,koth_ckpt,challenger_ckpt,first_player=1,n_MCTS_search=25):
-    s=game.startState()
-
-#     while True:
-#         player = game.getCurrentPlayer(s)
-#         mcts=MCTS()
-#         if (first_player*player) >0:
-#             network.load_weights(koth_ckpt)
-#         else:
-#             network.load_weights(challenger_ckpt)
-#         for _ in range(n_MCTS_search):
-#             mcts.search(s,network)
-#         policy=mcts.computePi(s,network)
-#         a = np.random.choice(game.ACTIONS,p=policy)
-#         s = game.nextState(s,a)
-#         print(policy)
-#         print(s)
-#         if game.isEnded(s):
-#             return first_player*game.getWinner(s)
-
-#     for episode in range(episodes):
-#         game = Game.new()
-
-#         winner = game.play(players, draw=draw)
-#         winners[winner] += 1
-
-#         winners_total = sum(winners)
-#         print("[Episode %d] %s (%s) vs %s (%s) %d:%d of %d games (%.2f%%)" % (episode, \
-#                                                                               players[0].name, players[0].player, \
-#                                                                               players[1].name, players[1].player, \
-#                                                                               winners[0], winners[1], winners_total, \
-#                                                                               (winners[0] / winners_total) * 100.0))
-
 def test(network):
 
-    episodes = 100
+    episodes = 1000
     n_wins=0
     n_loss=0
     for episode in range(episodes):
@@ -208,12 +157,12 @@ def test(network):
 
         game_step = 0
         while not game.isEnded(s):
-            if player == 1: 
+            if player == 1:
                 best_a = -1
                 best_v = -np.inf
                 for a in game.validMoves(s):
                     s_a = game.nextState(s,a)
-                    v=network.sess.run(network.V, feed_dict={network.x: [np.reshape(s_a,(42,))]})
+                    v=network.sess.run(network.V, feed_dict={network.x: [np.reshape(s_a,(9,))]})
                     #print(v)
                     if -v > best_v:
                         best_v = -v
@@ -231,21 +180,14 @@ def test(network):
             n_wins += 1
         else:
             n_loss += 1
-        _, global_step, _ = network.sess.run([
-            network.train_op,
-            network.global_step,
-            network.reset_op
-        ], feed_dict={network.x: [np.reshape(s,(42,))], network.V_next: np.array([[winner]], dtype='float') })
-        
-
-        print("Random Game %d/%d (Winner: %s) in %d turns" % (episode, episodes, fplayer*winner, game_step))
-    print(n_wins/(n_wins+n_loss))
+        #print("Random Game %d/%d (Winner: %s) in %d turns" % (episode, episodes, fplayer*winner, game_step))
+    print(n_wins/(n_wins+n_loss),"           ")
 
 
 def train(network):
 
-    validation_interval = 1000
-    episodes = 5000
+    validation_interval = 500
+    episodes = 10000
 
     for episode in range(episodes):
         if episode != 0 and episode % validation_interval == 0:
@@ -261,15 +203,15 @@ def train(network):
             best_v = -np.inf
             for a in game.validMoves(s):
                 s_a = game.nextState(s,a)
-                v=-network.sess.run(network.V, feed_dict={network.x: [np.reshape(s_a,(42,))]})
+                v=-network.sess.run(network.V, feed_dict={network.x: [np.reshape(s_a,(9,))]})
                 #print(v)
                 if v > best_v:
                     best_v = v
                     best_a = a
                 #time.sleep(1)
             s_next=game.nextState(s,best_a)
-            V_next=-network.sess.run(network.V, feed_dict={network.x: [np.reshape(s_next,(42,))]})
-            network.sess.run(network.train_op, feed_dict={network.x: [np.reshape(s,(42,))], network.V_next: V_next })
+            V_next=network.sess.run(network.V, feed_dict={network.x: [np.reshape(s_next,(9,))]})
+            network.sess.run(network.train_op, feed_dict={network.x: [np.reshape(s,(9,))], network.V_next: -V_next })
 
             s = s_next
             game_step += 1
@@ -280,12 +222,16 @@ def train(network):
             network.train_op,
             network.global_step,
             network.reset_op
-        ], feed_dict={network.x: [np.reshape(s,(42,))], network.V_next: np.array([[winner]], dtype='float') })
+        ], feed_dict={network.x: [np.reshape(s,(9,))], network.V_next: np.array([[winner]], dtype='float') })
 
-        print("Game %d/%d (Winner: %s) in %d turns" % (episode, episodes, game.getWinner(s), game_step))
+        print("Game %d/%d (Winner: %s) in %d turns" % (episode, episodes, game.getWinner(s), game_step),end='\r')
         network.saver.save(network.sess, network.checkpoint_path + 'checkpoint', global_step=global_step)
 
-sess=tf.Session()
 
-net=Model(sess,'TDsaves/','TDsaves/','TDsaves/')
-train(net)
+
+# sess=tf.Session()
+
+# net=Model(sess,'TDsaves/','TDsaves/','TDsaves/')
+# net.restore()
+# test(net)
+#train(net)
