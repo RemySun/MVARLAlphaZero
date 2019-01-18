@@ -12,7 +12,24 @@ import evaluate
 
 
 def policyIteration(n_iters=50,n_episodes=100,load=None,n_MCTS_search=15,max_ex=10000,save_dir="toe_deep_narrow/"):
+    '''
+    Runs the policy iteration training of a network specified in the first line of the function code
 
+    Input:
+    ------
+
+    n_iters: number of training iterations
+
+    n_episodes: number of episodes played per iterations
+
+    load: If defined, the checkpoint path to load
+
+    n_MCTS_search: Number of mcts searches before playing a move
+
+    max_ex: maximum number of training examples
+
+    save_dir: Where to save models (directory path)
+    '''
     network = model.ToeDeepNetwork()
 
     if load:
@@ -85,8 +102,17 @@ def policyIteration(n_iters=50,n_episodes=100,load=None,n_MCTS_search=15,max_ex=
 
 
 
-def trainNetwork(network, examples,save_dir='toe_dense/'):
+def trainNetwork(network, examples):
+    '''
+    Train a network from examples
 
+    Input:
+    ------
+
+    network: Keras model to train
+
+    examples: list of training examples
+    '''
     input_data = np.array([ex[0] for ex in examples])
     ground_truths = [np.array([ex[1] for ex in examples]),np.array([ex[2] for ex in examples])]
 
@@ -97,6 +123,23 @@ def trainNetwork(network, examples,save_dir='toe_dense/'):
     return history
 
 def playMatch(network,n_MCTS_search=25,tau=2):
+    '''
+    Runs a self play match.
+
+    Input:
+    ------
+
+    networks: Keras model used
+
+    n_MCTS_search: Number of mcts searches before playing a move
+
+    tau: Temperature of the MCTS
+
+    Returns:
+    --------
+
+    examples: list examples seen in the game.
+    '''
     examples = []
     s=game.startState()
     mcts = MCTS(tau=tau)
@@ -118,6 +161,6 @@ def playMatch(network,n_MCTS_search=25,tau=2):
 # alpha_player.reset()
 # human = HumanPlayer()
 # fight(alpha_player,human)
-#faceTheMachine(net,'koth_net.h5')
-network=policyIteration()
+# faceTheMachine(net,'koth_net.h5')
+# network=policyIteration()
 

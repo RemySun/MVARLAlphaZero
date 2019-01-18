@@ -10,7 +10,29 @@ from player import RandomPlayer,TDPlayer,AlphaZeroPlayer,HumanPlayer,AlphaGreedy
 from keras.callbacks import EarlyStopping
 
 def duel(player_koth,player_chall,n_games=30,draw=False,loud=True):
+    '''
+    Runs a series of matches between two player objects
 
+    Input:
+    ------
+
+    player_koth: The first player, the "king of the hill"
+
+    player_chall: The second player, the "challenger"
+
+    n_games: Number of games played
+
+    draw: Whether to return draws
+
+    loud: Whether to turn on commentary
+
+    Returns:
+    --------
+
+    wr: the challenger's winrate (excluding drawn games)
+
+    dr: Number of draws
+    '''
     challenger_wins = 0
     koth_wins=0
 
@@ -41,6 +63,23 @@ def duel(player_koth,player_chall,n_games=30,draw=False,loud=True):
     return wr
 
 def fight(player1,player2,first_player=1):
+    '''
+    Runs a match
+
+    Input:
+    ------
+
+    player1: The first player, the "king of the hill"
+
+    player2: The second player, the "challenger"
+
+    first_player: who starts, 1 for the first, -1 for the other
+
+    Returns:
+    --------
+
+    winner: Who won, 1 for the first, -1 for the other
+    '''
     s=game.startState()
 
     while True:
@@ -55,6 +94,27 @@ def fight(player1,player2,first_player=1):
             return first_player*game.getWinner(s)
 
 def sanityCheck(network,n_MCTS_search=25,n_games=30,opponent='random',exp=False,koth_ckpt='koth_net.h5',save_dir='toe_dense/'):
+    '''
+    Runs a series of matches between the network's alphago player and a baseline opponent and prints it out in log files
+
+    Input:
+    ------
+
+    network: Keras network model we are training
+
+    n_MCTS_search: number of mcts searches before playing a move
+
+    n_games: Number of games played
+
+    opponent: what opponent to play, check code for possible opponents
+
+    exp: Is this for experiment logging ? (or rather, I was very lazy)
+
+    koth_ckpt: The best network checkpoint, the one we are going to use
+
+    save_dir: where saving is done (directory)
+
+    '''
     if opponent == 'random':
         bench_player = RandomPlayer()
     elif opponent == 'gammon':
@@ -81,7 +141,23 @@ def sanityCheck(network,n_MCTS_search=25,n_games=30,opponent='random',exp=False,
     return
 
 def stupidityCheck(net,n_MCTS_search=25,config=0):
+    '''
+    Check network reaction to some basic examples
 
+    Input:
+    ------
+
+    net: Keras network tested.
+
+    n_MCTS_search: number of searches to perform
+
+    config: which test to perform (check code)
+
+    Returns:
+    --------
+
+    Ns: Number of visits to children states
+    '''
     mcts = MCTS()
     s=game.startState()
     if config == 0:
